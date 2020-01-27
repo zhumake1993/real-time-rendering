@@ -1,7 +1,3 @@
-# Test
+# Preface
 
-$H(Y | X)=\sum_{x \in \mathcal{X}, y \in \mathcal{Y}} p(x, y) \log \left(\frac{p(x)}{p(x, y)}\right)$
-
-$x^4$
-
-$$公式内容$$
+第4版出版于2018年，距离2008年的第3版已经有10年。本书介绍3维空间的实时渲染。建模，动画等领域不在本书的范围之内。我们会专注于算法，而非API。网站 realtimerendering.com 有引文的链接，还包括资源，教程，示例程序，样本代码，软件库，矫正，等等。
