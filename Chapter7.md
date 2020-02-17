@@ -160,13 +160,43 @@ $$
 *percentage-closer ltering*指代计算光可见的采样的百分比。
 
 采样与过滤这些阴影贴图的位置有许多种变体。采样区域有多宽，采样数量，采样模式，如何加权。一种类似于双线性插值的特殊纹理采样模式可以实现PCF。DirectX 10引入了一种单指令双线性过滤以支持PCF。规则采样会导致穿帮，一种方法是使用泊松分布，如下：
- ![](f7.23.png)
+![](f7.23.png)
 
- 使用PCF时，自阴影与阴影粉刺的问题会变得更加严重。一些额外的偏移因子被提了出来。如*bias cone*，*receiver plane depth bias*。
+使用PCF时，自阴影与阴影粉刺的问题会变得更加严重。一些额外的偏移因子被提了出来。如*bias cone*，*receiver plane depth bias*。
 
- PCF的一个问题是，由于采样区域固定大小，半影的宽度是恒定的。在遮挡者和接受者接触的地方会产生无法接受的结果，如下：
-  ![](f7.25.png)
+PCF的一个问题是，由于采样区域固定大小，半影的宽度是恒定的。在遮挡者和接受者接触的地方会产生无法接受的结果，如下：
+![](f7.25.png)
 
-  ## 7.6 Percentage-Closer Soft Shadows
+## 7.6 Percentage-Closer Soft Shadows
 
-  
+PCSS（*percentage-closer soft shadows*）在阴影贴图上搜索某一位置的附近区域来找到所有可能的遮挡者，并用这些遮挡者到该位置的距离的平均来决定采样区域的宽度：
+$$
+w_{\text {sample }}=w_{\text {light }} \frac{d_{r}-d_{o}}{d_{r}}
+$$
+$d_{r}$是接收者到光的距离，$d_{r}$是平均遮挡距离。上图右图是一个例子。技术细节见原文。
+
+使用CHS（*contact hardening shadows*）可以提升PCSS的速度。其他技术有SSSM（*separable soft shadow mapping*），*min/max shadow map*，*backprojection*。
+
+## 7.7 过滤阴影贴图
+
+一些对阴影贴图做过滤操作的算法有：VSM（*variance shadow map*），*convolution shadow map*，ESM（*exponential shadow map*），也叫EVSM（*exponential variance shadow map*），*moment shadow mapping*。
+
+## 7.8 体阴影技术
+
+本节介绍了*deep shadow maps*，*opacity shadow maps*，*adaptive volumetric shadow maps*。
+
+## 7.9 不规则$z$缓冲阴影
+
+细节见原文，一个图示如下：
+![](f7.30.png)
+
+## 7.10 其他应用
+
+一种用于渲染地形阴影的技术效果如下：
+![](f7.32.png)
+
+另一种技术是渲染屏幕空间阴影（*screen-space shadows*）。在现代渲染引擎中，可以通过一个prepass来得到摄像机视角的深度缓冲。该深度缓冲中的值可以被看作是高度场。通过不断采样该深度缓冲，可以执行一个光线步进的过程来判断某一个位置朝光源的方向是否被遮挡。尽管消耗较大，但是该方法产生的阴影质量很高，通常用于特写镜头。
+
+## 拓展阅读
+
+略
