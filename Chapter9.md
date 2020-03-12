@@ -447,3 +447,389 @@ $$G_{2}(\mathbf{l}, \mathbf{v}, \mathbf{m})=\frac{\chi^{+}(\mathbf{m} \cdot \mat
 
 ## 9.8 表面反射的BRDF模型
 
+除了少数例外，PBS中使用的镜面BRDF项从微平面理论导出。在镜面表面反射中，每一个微平面都是一个完美的平滑菲涅尔镜子。这种镜子将每一条入射光反射到一个出射方向。这意味着每个微平面的微BRDF $f_{\mu}(l, \mathbf{v}, \mathbf{m})$只有在$\mathbf{v}$平行于$\mathbf{l}$的时候才不为0。对于给定的$\mathbf{v}$和$\mathbf{l}$向量，这一要求等价于微平面的法向量$\mathbf{m}$必须与$\mathbf{v}$和$\mathbf{l}$中间的半向量（*half vector*）$\mathbf{h}$对齐。如下图。
+![](f9.33.png)
+
+半向量计算如下：
+$$\mathbf{h}=\frac{l+\mathbf{v}}{\|\mathbf{l}+\mathbf{v}\|}$$
+
+推导镜面微平面模型时，$f_{\mu}(l, \mathbf{v}, \mathbf{m})$对于所有的$\mathbf{m} \neq \mathbf{h}$都为0的性质十分方便。这可以避免积分。得到的镜面BRDF项为：
+$$f_{\text {spec }}(l, \mathbf{v})=\frac{F(\mathbf{h}, l) G_{2}(l, \mathbf{v}, \mathbf{h}) D(\mathbf{h})}{4|\mathbf{n} \cdot l \| \mathbf{n} \cdot \mathbf{v}|}$$
+
+我们使用$f_{\text {spec }}$来表示上式是为了表明该项只对表面镜面反射建模。在一个完整的BRDF中，通常还有一项对次表面漫反射着色进行建模。便于理解该方程的图示如下：
+![](f9.34.png)
+
+因此，反射光的量依赖于法向量等于$\mathbf{m}$的微平面的量。该值由$D(\mathbf{h})$（从光方向和视方向都能看到的微平面的比例，等于$G_{2}(l, \mathbf{v}, \mathbf{h})$）和$F(\mathbf{h}, l)$（这种微平面反射光的比例）共同给出。在计算菲涅尔方程时，使用$\mathbf{h}$替换表面法向量。
+
+在遮挡阴影函数中使用半向量可以起到简化作用。因为角度永远不会超过90度，所以$\chi^{+}$可以被剔除。
+
+### 9.8.1 法向量分布函数
+
+法向量分布函数对于表面的外观有着举足轻重的影响。NDF的形状，决定了反射光锥（镜叶）的宽度和形状，从而决定了高光的尺寸和形状。NDF影响对表面粗糙度的总体感知，也影响其他更加不易察觉的视觉效果，如高光是否有明确的边界，还是在边界处渐渐变暗。
+
+但是，镜叶不是NDF形状的简单复制。随着表面曲率和视角的变化，镜叶的形状，以及高光的形状会有不同程度的扭曲。在掠射角情况下平面的高光扭曲最强烈，如下图所示。左图是非物理渲染，中图使用BRDF，右图是照片。
+![](f9.35.png)
+
+#### 各向同性NDF
+
+渲染中使用的绝大多数NDF都是各向同性的，即关于宏观表面法向量旋转对称。此时，NDF是一个变量的方程，即$\mathbf{n}$和$\mathbf{m}$之间的夹角$\theta_{m}$。理想情况下，NDF可以写成$\cos \theta_{m}$的表达式。
+
+Beckmann NDF出现很早。它也被用于Cook-Torrance BRDF。其形式如下：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\pi \alpha_{b}^{2}(\mathbf{n} \cdot \mathbf{m})^{4}} \exp \left(\frac{(\mathbf{n} \cdot \mathbf{m})^{2}-1}{\alpha_{b}^{2}(\mathbf{n} \cdot \mathbf{m})^{2}}\right)$$
+
+其中$\chi^{+}(\mathbf{n} \cdot \mathbf{m})$项确保当微平面法向量指向宏观表面下方时NDF为0。这一性质告诉我们该NDF，包括本节将要讨论的其他NDF，都描述了一个高度场微观结构。$\alpha_{b}$参数控制表面粗糙度。它正比于微观几何表面的坡度的均方根。因此$\alpha_{b}=0$表示一个完美平滑的表面。
+
+为了得到Beckmann NDF的Smith $G_{2}$函数，我们需要一个对应的$\Lambda$函数。Beckmann NDF是形状不变的（*shape-invariant*），这可以简化$\Lambda$函数的获取。对于一个各向同性NDF，如果其粗糙度参数的效果等价于对微观表面进行放缩（拉伸），那么它就是形状不变的。形状不变的NDF可以写成如下形式：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\alpha^{2}(\mathbf{n} \cdot \mathbf{m})^{4}} g\left(\frac{\sqrt{1-(\mathbf{n} \cdot \mathbf{m})^{2}}}{\alpha(\mathbf{n} \cdot \mathbf{m})}\right)$$
+
+其中$g$表示一个任意的单变量方程。对于一个任意的各向同性NDF，$\Lambda$函数依赖于两个变量。第一个变量是粗糙度$\alpha$，第二个变量是用于计算$\Lambda$函数的向量（$\mathbf{v}$或者$\mathbf{l}$）的入射角。但是，对于一个形状不变的NDF，$\Lambda$函数只依赖于变量$\alpha$：
+$$a=\frac{\mathbf{n} \cdot \mathbf{s}}{\alpha \sqrt{1-(\mathbf{n} \cdot \mathbf{s})^{2}}}$$
+
+其中$\mathbf{s}$是一个向量，表示$\mathbf{v}$或者$\mathbf{l}$。$\Lambda$函数只依赖于一个变量的事实可以简化实现。单变量函数更容易使用近似曲线来拟合，也可以存在一个一维数组中。Beckmann NDF的$\Lambda$函数是：
+$$\Lambda(a)=\frac{\operatorname{erf}(a)-1}{2}+\frac{1}{2 a \sqrt{\pi}} \exp \left(-a^{2}\right)$$
+
+上式计算量很大，因为要计算错误函数erf。因此通常使用近似版：
+$$\Lambda(a) \approx\left\{\begin{array}{ll}
+\frac{1-1.259 a+0.396 a^{2}}{3.535 a+2.181 a^{2}}, & \text { where } a<1.6 \\
+0, & \text { where } a \geq 1.6
+\end{array}\right.$$
+
+下一个要讨论的NDF是Blinn-Phong NDF。它在早期的计算机图形学中被广泛使用。在一些计算能力有限的设备上，Blinn-Phong NDF仍被使用，因为其计算量小于后续要讨论的NDF。
+
+Blinn-Phong NDF由非物理的Phong着色模型修改而来：
+$$D(\mathbf{m})=\chi^{+}(\mathbf{n} \cdot \mathbf{m}) \frac{\alpha_{p}+2}{2 \pi}(\mathbf{n} \cdot \mathbf{m})^{\alpha_{p}}$$
+
+指数$\alpha_{p}$是粗糙度参数。高值表示平滑表面。$\alpha_{p}$的值可以任意高，一个完美的镜子需要$\alpha_{p}=\infty$。一个最大随机表面（均匀NDF）可以通过$\alpha_{p}=0$获得。$\alpha_{p}$参数不太好直接操作，因为它的视觉影像是高度非线性的。当$\alpha_{p}$很小时，小范围的数值变化就会引起很大的视觉变化。因此$\alpha_{p}$通常由一个经过非线性映射的参数来获得。例如，$\alpha_{p}=m^{s}$，其中$s$介于0和1之间，$m$是给定应用中的一个上界。《使命召唤：黑色行动》使用了这种映射，其中$m$的值是8192。
+
+当BRDF参数在感知上不均匀时，这种映射很有用。
+
+Beckmann粗糙度和Blinn-Phong粗糙度之间的关系是$\alpha_{p}=2 \alpha_{b}^{-2}-2$。当参数使用这种方式匹配时，这两个分布十分近似，尤其是对相对平滑的表面。如下图。左上是Blinn-Phong（蓝色虚线）和Beckmann（绿线），$\alpha_{b}$范围从0.025到0.2（使用参数关系$\alpha_{p}=2 \alpha_{b}^{-2}-2$）。右上是GGX（红）和Beckmann（率）。$\alpha_{b}$的值与左图一样。$\alpha_{g}$的值经过调整以匹配高光的尺寸。下面的球使用了相同的数值。第一行使用Beckmann NDF，第二行使用GGX。
+![](f9.36.png)
+
+Blinn-Phong NDF不是形状不变的，其$\Lambda$函数的解析形式也不存在。不过可以使用一些近似方法。
+
+目前在电影和游戏工业中被广泛使用的是GGX分布：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m}) \alpha_{g}^{2}}{\pi\left(1+(\mathbf{n} \cdot \mathbf{m})^{2}\left(\alpha_{g}^{2}-1\right)\right)^{2}}$$
+
+控制粗糙度的参数$\alpha_{g}$与Beckmann中的$\alpha_{b}$参数类似。在迪士尼的着色模型中使用了$\alpha_{g}=r^{2}$来控制粗糙度，其中$r$被暴露给用户，范围在0和1之间。使用$r$可以以更加线性的方式来控制效果，许多使用了GGX分布的应用都使用了该方法。
+
+GGX分布是形状不变的，其$\Lambda$函数相对简单：
+$$\Lambda(a)=\frac{-1+\sqrt{1+\frac{1}{a^{2}}}}{2}$$
+
+由于GGX分布和史密斯遮挡阴影函数的流行，有许多方法用于优化两者的结合。针对GGX的高度相关的史密斯$G_{2}$有一项在与镜面微平面BRDF的分母结合时可以抵消：
+$$\frac{G_{2}(l, \mathbf{v})}{4|\mathbf{n} \cdot l||\mathbf{n} \cdot \mathbf{v}|} \Longrightarrow \frac{0.5}{\mu_{o} \sqrt{\alpha^{2}+\mu_{i}\left(\mu_{i}-\alpha^{2} \mu_{i}\right)}+\mu_{i} \sqrt{\alpha^{2}+\mu_{o}\left(\mu_{o}-\alpha^{2} \mu_{o}\right)}}$$
+
+该方程使用了变量替换：$\mu_{i}=(\mathbf{n} \cdot \mathbf{l})^{+}$和$\mu_{o}=(\mathbf{n} \cdot \mathbf{v})^{+}$。一种针对GGX的史密斯$G_{1}$函数的近似是：
+$$G_{1}(\mathbf{s}) \approx \frac{2(\mathbf{n} \cdot \mathbf{s})}{(\mathbf{n} \cdot \mathbf{s})(2-\alpha)+\alpha}$$
+
+其中$\mathbf{s}$可以被$\mathbf{l}$或者$\mathbf{v}$替换。这种近似又可以进一步近似高度相关的史密斯$G_{2}$函数和镜面微平面BRDF的结合：
+$$\frac{G_{2}(\mathrm{l}, \mathbf{v})}{4|\mathbf{n} \cdot \mathbf{l}||\mathbf{n} \cdot \mathbf{v}|} \approx \frac{0.5}{\operatorname{lerp}(2|\mathbf{n} \cdot \mathbf{l}||\mathbf{n} \cdot \mathbf{v}|,|\mathbf{n} \cdot \mathbf{l}|+|\mathbf{n} \cdot \mathbf{v}|, \alpha)}$$
+
+其中$\operatorname{lerp}(x, y, s)=x(1-s)+y s$。
+
+GGX和Beckmann分布的差异很大。GGX有更窄的峰部和更长的尾部，因此会在高光的周围产生渐渐变暗的效果。见上图。
+
+许多现实世界的材质显示出类似的高光效果，其尾部甚至比GGX的更长，如下图。NDF被调整以衡量铬。图中的曲线相对于$\theta_{m}$。分别是铬（黑），GGX（红，$\alpha_{g}=0.006$），Beckmann（绿，$\alpha_{b}=0.013$）和Blinn-Phong（蓝色虚线，$n=12000$）。右图是渲染的高光，分别是铬，GGX和Beckmann。
+![](f9.37.png)
+
+GTR（*generalized Trowbridge-Reitz*）NDF可以对NDF的形状进行更多的控制，尤其是尾部：
+$$D(\mathbf{m})=\frac{k(\alpha, \gamma)}{\pi\left(1+(\mathbf{n} \cdot \mathbf{m})^{2}\left(\alpha_{g}^{2}-1\right)\right)^{\gamma}}$$
+
+其中$\gamma$参数控制尾部的形状。当$\gamma=2$时，GTR等同于GGX。随着$\gamma$的减小，尾部越长。$\gamma$值很大时，GTR类似于Beckmann。$k(\alpha, \gamma)$项是标准化因子：
+$$k(\alpha, \gamma)=\left\{\begin{array}{ll}
+\frac{(\gamma-1)\left(\alpha^{2}-1\right)}{\left(1-\left(\alpha^{2}\right)^{(1-\gamma)}\right)}, & \text { where } \gamma \neq 1 \text { and } \alpha \neq 1 \\
+\frac{\left(\alpha^{2}-1\right)}{\ln \left(\alpha^{2}\right)}, & \text { where } \gamma=1 \text { and } \alpha \neq 1 \\
+1, & \text { where } \alpha=1
+\end{array}\right.$$
+
+GTR分布不是形状不变的，因此找到其史密斯$G_2$函数很困难。目前其$G_2$函数十分复杂。另一方面，其参数$\alpha$和$\gamma$对感知上的粗糙度和光泽的影响是非直觉的。
+
+STD（*Student's t-distribution*）和EPD（*exponential power distribution*）NDFs包含形状控制参数。它们是形状不变的。这些成果刚刚被发表。
+
+另一种更好匹配材质的方法是使用多个镜叶。皮克斯的PxrSurface采用了这种方法，Imageworks也有类似实现。
+
+#### 各向异性NDF
+
+尽管绝大多数材质在统计上是各向同性的，但有一些材质是各向异性的。这需要BRDF，尤其是NDF也是各向异性的。
+
+各向异性NDF无法只是用一个角度$\theta_{m}$来计算。还需要额外的角度信息。通常情况下，微平面法向量需要被变换到由法向量，切向量和双切向量定义的局部坐标系（*local frame*）或者切线空间（*tangent space*）。如下图。实际中，这种变换通常用三个点乘表达：$m \cdot n$，$m \cdot t$和$m \cdot b$。
+![](f6.32.png)
+
+当把法向量映射和各向异性BRDF相结合时，要保证法向量贴图在扰动法向量的同时也要调整切向量和双切向量。这一过程通常要将修改的格瑞姆-施密特（*modified Gram-Schmidt*）过程应用到扰动过的法向量$\theta_{n}$和插值得到的切向量$\theta_{m_0}$以及双切向量$\theta_{b_0}$。假定$\theta_{n}$已经标准化，则需要：
+$$\mathbf{t}^{\prime}=\mathbf{t}_{0}-\left(\mathbf{t}_{0} \cdot \mathbf{n}\right) \mathbf{n} \quad \Longrightarrow \mathbf{t}=\frac{\mathbf{t}^{\prime}}{\left\|\mathbf{t}^{\prime}\right\|}$$
+$$\left.\begin{array}{rl}
+\mathbf{b}^{\prime} & =\mathbf{b}_{0}-\left(\mathbf{b}_{0} \cdot \mathbf{n}\right) \mathbf{n}, \\
+\mathbf{b}^{\prime \prime} & =\mathbf{b}^{\prime}-\left(\mathbf{b}^{\prime} \cdot \mathbf{t}\right) \mathbf{t}
+\end{array}\right\}=\frac{\mathbf{b}^{\prime \prime}}{\left\|\mathbf{b}^{\prime \prime}\right\|}$$
+
+其中$\mathbf{b}$也可由$\mathbf{n}$和$\mathbf{t}$的叉乘获得。
+
+对于诸如拉丝金属和卷曲的头发之类的效果，需要修改每个像素的切向量方向，这通常使用切向量贴图（*tangent map*）。切向量通常存储切向量向垂直于法向量的平面的二维投影。这种表示方式与纹理过滤兼容得很好，使用的压缩方法也与法向量贴图类似。一些应用使用另一种方法，即存储一个标量旋转值。该值用来绕法向量旋转切向量。这种表示方法更紧凑，但是在旋转角度由360度转到0度时会有纹理过滤失真的问题。
+
+一种创造各向异性NDF的通用方法是对一个已经存在的各向同性NDF进行一般化处理。这种一般化方法可以用于任何形状不变的各向同性NDF。回忆各向同性的形状不变的NDF有如下形式：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\alpha^{2}(\mathbf{n} \cdot \mathbf{m})^{4}} g\left(\frac{\sqrt{1-(\mathbf{n} \cdot \mathbf{m})^{2}}}{\alpha(\mathbf{n} \cdot \mathbf{m})}\right)$$
+
+其中$g$是一个一维的函数，用来表达NDF的形状。则各向异性的版本是：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\alpha_{x} \alpha_{y}(\mathbf{n} \cdot \mathbf{m})^{4}} g\left(\frac{\sqrt{\frac{(\mathbf{t} \cdot \mathbf{m})^{2}}{\alpha_{x}^{2}}+\frac{(\mathbf{b} \cdot \mathbf{m})^{2}}{\alpha_{y}^{2}}}}{(\mathbf{n} \cdot \mathbf{m})}\right)$$
+
+参数$\alpha_{x}$和$\alpha_{y}$分别表示沿方向$\mathbf{t}$和$\mathbf{b}$的粗糙度。如果$\alpha_{x}=\alpha_{y}$，上式退化为各向同性的形式。
+
+各向异性NDF的$G_{2}$遮挡阴影函数与各向同性的对应函数一样，除了变量$a$（传给$\Lambda$函数）的计算方法不一样：
+$$a=\frac{\mathbf{n} \cdot \mathbf{s}}{\sqrt{\alpha_{x}^{2}(\mathbf{t} \cdot \mathbf{s})^{2}+\alpha_{y}^{2}(\mathbf{b} \cdot \mathbf{s})^{2}}}$$
+
+其中$\mathbf{s}$表示$\mathbf{v}$或者$\mathbf{l}$。
+
+使用这种方法，Beckmann NDF的各向异性版本是：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\pi \alpha_{x} \alpha_{y}(\mathbf{n} \cdot \mathbf{m})^{4}} \exp \left(-\frac{\frac{(\mathbf{t} \cdot \mathbf{m})^{2}}{\alpha_{x}^{2}}+\frac{(\mathbf{b} \cdot \mathbf{m})^{2}}{\alpha_{y}^{2}}}{(\mathbf{n} \cdot \mathbf{m})^{2}}\right)$$
+
+GGX的各向异性版本是：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\pi \alpha_{x} \alpha_{y}\left(\frac{(\mathbf{t} \cdot \mathbf{m})^{2}}{\alpha_{x}^{2}}+\frac{(\mathbf{b} \cdot \mathbf{m})^{2}}{\alpha_{y}^{2}}+(\mathbf{n} \cdot \mathbf{m})^{2}\right)^{2}}$$
+
+效果如下图。上面是Meckmann，下面是GGX。$\alpha_{y}$恒定，$\alpha_{x}$从左到右不断增加。
+![](f9.38.png)
+
+尽管参数化各向异性NDF的最直接的方法就是使用各向同性粗糙度参数化两次，一次$\alpha_{x}$，一次$\alpha_{y}$。其他参数化方法也是有的。在迪士尼主着色模型中，除了各向同性粗糙度参数$r$外还有一个标量参数$k_{aniso}$，范围是$[0,1]$。$\alpha_{x}$和$\alpha_{y}$从这些参数中计算得到：
+$$\begin{aligned}
+k_{\text {aspect }} &=\sqrt{1-0.9 k_{\text {aniso }}} \\
+\alpha_{x} &=\frac{r^{2}}{k_{\text {aspect }}} \\
+\alpha_{y} &=r^{2} k_{\text {aspect }}
+\end{aligned}$$
+
+因子0.9将宽高比限制到10: 1。
+
+Imageworks使用了另一种参数化，允许任意程度的各向异性：
+$$\begin{aligned}
+&\alpha_{x}=r^{2}\left(1+k_{\text {aniso }}\right)\\
+&\alpha_{y}=r^{2}\left(1-k_{\text {aniso }}\right)
+\end{aligned}$$
+
+### 9.8.2 多跳表面反射
+
+如【s9.7】所说，微平面BRDF框架不考虑光线在微表面反射多次的情况。这回造成能量损失和颜色变暗，尤其对一些粗糙的金属。
+
+一种技术是往BRDF增加一项用来模拟多跳表面反射：
+$$f_{\mathrm{ms}}(l, \mathrm{v})=\frac{\bar{F} \overline{R_{\mathrm{sF} 1}}}{\pi(1-\overline{R_{\mathrm{sF} 1}})(1-\bar{F}(1-\overline{R_{\mathrm{sF} 1}}))}\left(1-R_{\mathrm{sF} 1}(\mathrm{l})\right)\left(1-R_{\mathrm{sF} 1}(\mathrm{v})\right)$$
+
+其中$R_{\mathrm{sF} 1}$是$f_{\mathrm{sF} 1}$的方向反射率【s9.3】，也就是$F_0$为1的镜面BRDF项。$R_{\mathrm{sF} 1}$函数依赖于粗糙度$\alpha$和俯仰角$\theta$。它相对平滑，因此可以预计算，并存在一个很小的二维纹理中。Imageworks发现使用$32 \times 32$的分辨率就够了。
+
+$\overline{R_{\mathrm{SF} 1}}$函数是$R_{\mathrm{sF} 1}$在半球上的余弦加权平均值。它只依赖于$\alpha$，因此可以存在一个一维纹理中，或者用曲线近似。由于$R_{\mathrm{sF} 1}$相对于$\mathbf{n}$旋转对称，$\overline{R_{\mathrm{SF} 1}}$可以用一个一维的积分来计算。我们也使用了变量替换$\mu=\cos \theta$：
+$$\begin{aligned}
+\overline{R_{\mathrm{sF} 1}} &=\frac{\int_{\mathbf{s} \in \Omega} R_{\mathrm{sF} 1}(\mathbf{s})(\mathbf{n} \cdot \mathbf{s}) d \mathbf{s}}{\int_{\mathbf{s} \in \Omega}(\mathbf{n} \cdot \mathbf{s}) d \mathbf{s}}=\frac{1}{\pi} \int_{\phi=0}^{2 \pi} \int_{\mu=0}^{1} R_{\mathrm{sF} 1}(\mu) \mu d \mu d \phi \\
+&=2 \int_{\mu=0}^{1} R_{\mathrm{sF} 1}(\mu) \mu d \mu
+\end{aligned}$$
+
+最终，$F$是菲涅尔项的余弦加权平均，计算方式一样：
+$$\bar{F}=2 \int_{\mu=0}^{1} F(\mu) \mu d \mu$$
+
+Imageworks提供了上式的一个封闭解，要求$F$使用一般化的Schlick形式：
+$$\bar{F}=\frac{2 p^{2} F_{90}+(3 p+1) F_{0}}{2 p^{2}+3 p+1}$$
+
+如果原始的Schlick近似被使用，那么解可以简化为：
+$$\bar{F}=\frac{20}{21} F_{0}+\frac{1}{21}$$
+
+对于各向异性的情况，Imageworks使用了介于$\alpha_{x}$和$\alpha_{y}$之间的中间粗糙度来计算$f_{ms}$。这种近似可以避免增加$R_{\mathrm{sF} 1}$查找表的维度，引入的错误很小。
+
+Imageworks多跳镜面项的结果如下。粗糙度从左到右逐渐增加。前两行是黄金材质。第一行没有使用Imageworks多跳项，第二行使用。对于粗糙的球体，差距很明显。下面两行是黑色的绝缘材质。第三行没有使用Imageworks多跳镜面项，第四行使用。此时差距很小，因为镜面反射很弱。
+![](f9.39.png)
+
+## 9.9 次表面散射的BRDF模型
+
+上一章讨论了表面反射，或者叫镜面反射。本节讨论这个问题的另一面，也就是光在表面下的折射。如【s9.1.4】所讨论的，光在表面下经历了散射和吸收，部分光会被重新发射出表面。我们专注用于局部次表面散射的BRDF模型，或者叫漫反射表面反应，并且限制于不透明绝缘体。金属没有次表面交互。第14章会讨论透明绝缘材质和全局次表面散射。
+
+我们先讨论漫反射颜色的性质和现实世界中这种颜色的可能值。然后解释表面粗糙度对漫反射着色的影响，以及用于决定选择平滑表面着色模型还是粗糙表面着色模型的准则。最后详细介绍这两个模型本身。
+
+### 9.9.1 次表面反射率
+
+不透明绝缘体的次表面反射率$\rho_{ss}$是逃离表面的光的能量与进入材质内部的光的能量的比值。$\rho_{ss}$的值在0（所有光被吸收）和1（没有光被吸收）之间，并且依赖于波长。因此$\rho_{ss}$在渲染中使用RGB向量来表示。$\rho_{ss}$通常被看做是表面的漫反射颜色，就像法向入射菲涅尔反射率$F_{0}$被看作是高光颜色一样。次表面反射率与【s14.1】中讨论的散射反射率有很大关系。
+
+由于绝缘体在表面透射绝大多数的光，而只反射很少的光，因此其次表面反射率$\rho_{ss}$通常更亮，因此视觉上比高光颜色$F_{0}$更重要。由于源自另一个物理过程（内部的吸收，而不是表面的菲涅尔反射），$\rho_{ss}$的光谱分布（即RGB值）通常与$F_{0}$相差很大。例如，有颜色的塑料由透明无色的物质组成，里面嵌有色素粒子。镜面反射光是没有颜色的，但是漫反射光由于色素粒子的吸收而变得有颜色。
+
+次表面反射率可以看成是吸收和散射互相“竞速”的结果：光在被吸收前是否有机会被散射处表面？这就是液体中的泡沫比液体本身还亮的原因。起泡沫的过程并不会改变液体的吸收率，但是无数空气液体交界面会显著增大散射的效果。这使得绝大多数入射光在被吸收前被散射，造成更高的次表面反射率和更亮的外观。新雪是另一个高反射率的例子。在雪颗粒和空气之间的交界面有显著的散射，但吸收很少，从而造成在可见光谱上次表面反射率高达0.8甚至更高。白色油漆稍微低点，大约0.7。许多现实生活中的物质，例如水泥，石头和土壤，其平均反射率在0.15到0.4之间。煤的次表面反射率极低，接近0.0。
+
+许多物质在潮湿的情况下会变暗的过程是液体泡泡例子的反面。如果材质多空，水会渗入材质内部的空间。而这些空间原本被空气占据。绝缘体的折射率与水的折射率更加接近。相对折射率的降低会减弱材质内部的散射效果。光在逃离表面之前会需要传播更长的距离。这使得更多的光被吸收，外观变暗。
+
+关于$\rho_{ss}$有一个通常的误解（甚至出现在一些广受好评的材质编辑指南中）：对于现实中的材质，$\rho_{ss}$的值永远不应该低于大约0.015-0.03。但是，这一下限所基于的颜色度量包括了镜面反射和漫反射，因此太高了。实际的材质可以有更低的值。
+
+当获取现实世界中的表面$\rho_{ss}$值时，需要去除镜面反射。有相应的方法。
+
+并不是所有的RGB三元组都表示一个可能（甚至是物理上可能的）的$\rho_{ss}$值。反射的光谱比发射的光谱功率分布有更大的限制：在任何波长上其值都不能超过1，并且通常很平滑。因此在设置$\rho_{ss}$值的时候需要特别注意。
+
+### 9.9.2 次表面散射和粗糙度的尺度
+
+一些用于局部次表面散射的BRDF模型考虑了表面的粗糙度（使用微平面理论和漫反射微BRDF $f_{\boldsymbol{\mu}}$），另外一些没有考虑。使用哪种模型的决定因素并不是表面的粗糙程度，尽管这是一种常见的误解。正确的决定因素与表面不规则性和次表面散射距离的相对尺度有关。
+
+参考下图。如果微观几何的不规则性大于次表面散射距离（左上图），那么次表面散射会显示与微观几何相关的效果，如逆反射。这种表面应该使用粗糙表面漫反射模型。如前所述，这种模型通常基于微平面理论，次表面散射发生在每个微平面的局部区域，因此只影响微BRDF $f_{\boldsymbol{\mu}}$。
+![](f9.40.png)
+
+如果散射距离大于不规则性（右上图），那么在对次表面散射进行建模时应该将表面视为平坦的，逆反射之类的效果不会发生。次表面散射对于一个微平面来说不是局部的，因此不能使用微平面理论来建模。此时需要使用平滑表面漫反射模型。
+
+对于表面粗糙度既有大于散射距离也有小于散射距离的中间情况，应该使用粗糙表面漫反射模型，但是要使用有效表面（*effective surface*）。该有效表面只包含大于散射距离的表面不规则性。漫反射和镜面反射都可以使用微平面理论进行建模，但是两者使用不同的粗糙度值。高光项使用的值基于实际表面的粗糙度值，漫反射项使用的值会小一点，基于有效表面的粗糙度值。
+
+观察尺寸也与此息息相关，因为它决定了什么是“微观几何”。例如，月亮应该使用粗糙表面漫反射模型，因为它的不规则性的尺度从地球来看非常大，表现出很强的逆反射。
+
+### 9.9.3 平滑表面漫反射模型
+
+平滑表面漫反射模型用于表达表面不规则性小于次表面散射距离的材质。在这种材质中，表面粗糙度并不直接影响漫反射着色。如果漫反射项和高光项结合在一起（本节的一些模型就是这样），那么表面粗糙度会间接影响漫反射着色。
+
+【s9.3】提到过，实时渲染应用通常将局部次表面散射建模为兰伯特项。在BRDF中漫反射项是：
+$$f_{\text {diff }}(\mathbf{l}, \mathbf{v})=\frac{\rho_{\mathrm{ss}}}{\pi}$$
+
+兰伯特项将表面反射的光也放在了次表面散射中，这是不正确的。为了改善模型，需要有一个能量权衡。一种基本的方式是减去高光项的菲涅尔部分。如果高光项是一个平坦的镜子，那么得到的漫反射项是：
+$$f_{\text {diff }}(l, \mathbf{v})=(1-F(\mathbf{n}, l)) \frac{\rho_{\mathrm{ss}}}{\pi}$$
+
+如果高光项是微平面BRDF项，那么得到的漫反射项是：
+$$f_{\text {diff }}(l, \mathbf{v})=(1-F(\mathbf{h}, l)) \frac{\rho_{\mathrm{ss}}}{\pi}$$
+
+上两项会导致均匀分布的出射光，因为BRDF的值并不依赖与出射方向$\mathbf{v}$。这有一定的道理，因为光会在表面下发生多次散射，使得其出射方向随机分布。但是，有两个因素没有考虑。首先，由于漫反射BRDF项随入射方向的变化而变化，根据赫姆霍兹互易性，它也应该随出射方向的变化而变化。其次，光在被射出的时候会发生折射，这会使得出射光有一定的方向性。
+
+Shirley等人提出了一种组合的漫反射项以用于平坦表面。它解决了菲涅尔效应和表面次表面反射之间的平衡，并且满足能量守恒和赫姆霍兹互易性。它使用Schlick近似：
+$$f_{\mathrm{diff}}(\mathbf{l}, \mathbf{v})=\frac{21}{20 \pi}\left(1-F_{0}\right) \rho_{\mathrm{ss}}\left(1-\left(1-(\mathbf{n} \cdot \mathbf{l})^{+}\right)^{5}\right)\left(1-\left(1-(\mathbf{n} \cdot \mathbf{v})^{+}\right)^{5}\right)$$
+
+上式只适用于镜面反射是完美菲涅尔镜子的情况。一种可以与任意镜面项结合的通用版本是：
+$$f_{\text {diff }}(\mathbf{l}, \mathbf{v})=\rho_{\text {ss }} \frac{\left(1-R_{\text {spec }}(\mathbf{l})\right)\left(1-R_{\text {spec }}(\mathbf{v})\right)}{\pi(1-\overline{\left.R_{\text {spec }}\right)}}$$
+
+其中，$R_{spec}$是镜面项的方向反射率【s9.3】，$\overline{R_{\mathrm{spec}}}$是其在半球上的余弦加权平均。$R_{spec}$的值可以预计算。$\overline{R_{\mathrm{spec}}}$的计算跟$\overline{R_{\mathrm{sF1}}}$一样。
+
+Imageworks实现了上式，效果如下：
+![](f9.41.png)
+
+关于上式的详细讨论和其他相关技术见原文。
+
+### 9.9.4 粗糙表面次表面模型
+
+迪士尼主着色模型中引入了一个漫反射BRDF项，以包含粗糙度效果：
+$$f_{\text {diff }}(l, \mathbf{v})=\chi^{+}(\mathbf{n} \cdot l) \chi^{+}(\mathbf{n} \cdot \mathbf{v}) \frac{\rho_{\mathrm{ss}}}{\pi}\left(\left(1-k_{\mathrm{ss}}\right) f_{\mathrm{d}}+1.25 k_{\mathrm{ss}} f_{\mathrm{ss}}\right)$$
+
+其中：
+$$\begin{aligned}
+f_{\mathrm{d}} &=\left(1+\left(F_{\mathrm{D} 90}-1\right)(1-\mathbf{n} \cdot l)^{5}\right)\left(1+\left(F_{\mathrm{D} 90}-1\right)(1-\mathbf{n} \cdot \mathbf{v})^{5}\right) \\
+F_{\mathrm{D} 90} &=0.5+2 \sqrt{\alpha}(\mathbf{h} \cdot \mathbf{l})^{2} \\
+f_{\mathrm{ss}} &=\left(\frac{1}{(\mathbf{n} \cdot \mathbf{l})(\mathbf{n} \cdot \mathbf{v})}-0.5\right) F_{\mathrm{SS}}+0.5 \\
+F_{\mathrm{SS}} &=\left(1+\left(F_{\mathrm{SS} 90}-1\right)(1-\mathbf{n} \cdot \mathbf{l})^{5}\right)\left(1+\left(F_{\mathrm{SS} 90}-1\right)(1-\mathbf{n} \cdot \mathbf{v})^{5}\right) \\
+F_{\mathrm{SS} 90} &=\sqrt{\alpha}(\mathbf{h} \cdot \mathbf{l})^{2}
+\end{aligned}$$
+
+其中$\alpha$是镜面粗糙度。如果是各向异性，一个$\alpha_{x}$和$\alpha_{y}$之间的中间值被使用。该方程被叫做迪士尼漫反射（*Disney diffuse*）模型。
+
+迪士尼漫反射模型用于电影和游戏（尽管没有次表面项）。完整的迪士尼漫反射项还包括一个光泽项。它主要用于模拟布料，也用于弥补由于缺乏多跳反射项做造成的能量损失。【9.10】会详细讨论。
+
+由于迪士尼漫反射模型使用的粗糙度与镜面BRDF相同，它在模拟特定材质时会有困难。但是，使用一个单独的漫反射粗糙度值可以很容易地解决。
+
+许多其他的粗糙表面漫反射BRDF基于微平面理论。见原文。许多的实时渲染应用仍然使用简单的兰伯特项，但是对高质量的要求也在不断增加。
+
+## 9.10 布料BRDF模型
+
+布料的微观几何很不同。根据布料的类型，它会有重复性的微观结构，垂直伸出表面的圆柱（线）。因此，布料需要特定的着色模型，例如各向异性镜面高光，粗糙散射（光在突出透明的布料间散射所造成的亮边效果），甚至是跟随视角的颜色偏移（不同颜色的线条穿过布料）。
+
+除了BRDF，绝大多数的布料拥有高频的空间变化，这是模拟布料的关键。如下图。左上使用标准的BRDF，包括一个GGX微平面镜面和兰伯特漫反射。中上使用布料BRDF。其他分别加了一种不同类型的逐像素变动，依次是布料编制细节，布料老化，缺陷细节和微笑褶皱。
+![](f9.42.png)
+
+布料BRDF模型有三大类：有观察得到的经验模型，基于微平面理论的模型，和微圆柱模型。
+
+### 9.10.1 经验布料模型
+
+在《神秘海域2》中的布料使用如下的漫反射BRDF项：
+$$f_{\text {diff }}(\mathbf{l}, \mathbf{v})=\frac{\rho_{\mathrm{ss}}}{\pi}\left(k_{\text {rim }}\left((\mathbf{v} \cdot \mathbf{n})^{+}\right)^{\alpha_{\text {rim }}}+k_{\text {inner }}\left(1-(\mathbf{v} \cdot \mathbf{n})^{+}\right)^{\alpha_{\text {inner }}}+k_{\text {diff }}\right)$$
+
+其中$k_{rim}$，$k_{inner}$和$k_{diff}$是用户控制的标量，用来分别控制边缘光照项，正面光照项和兰伯特项。这是非物理的。
+
+为了模拟布料，迪士尼在其漫反射模型中增加了一个光泽项以模拟粗糙散射：
+$$f_{\text {sheen }}(\mathbf{l}, \mathbf{v})=k_{\text {sheen }} \mathbf{c}_{\text {sheen }}\left(1-(\mathbf{h} \cdot \mathbf{l})^{+}\right)^{5}$$
+
+### 9.10.2 微平面布料模型
+
+在《教团：1886》中使用的布料模型中，通用天鹅绒NDF是：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})}{\pi\left(1+k_{\mathrm{amp}} \alpha^{2}\right)}\left(1+\frac{k_{\mathrm{amp}} \exp \left(\frac{(\mathbf{n} \cdot \mathbf{m})^{2}}{\left.\alpha^{2}(\mathbf{n} \cdot \mathbf{m})^{2}-1\right)}\right)}{\left(1-(\mathbf{n} \cdot \mathbf{m})^{2}\right)^{2}}\right)$$
+
+完整的布料BRDF是：
+$$f(l, \mathbf{v})=(1-F(\mathbf{h}, l)) \frac{\rho_{\mathrm{ss}}}{\pi}+\frac{F(\mathbf{h}, l) D(\mathbf{h})}{4(\mathbf{n} \cdot l+\mathbf{n} \cdot \mathbf{v}-(\mathbf{n} \cdot \mathbf{l})(\mathbf{n} \cdot \mathbf{v}))}$$
+
+Imageworks使用了另一个NDF。使用该NDF的光泽项可被加到任意的BRDF：
+$$D(\mathbf{m})=\frac{\chi^{+}(\mathbf{n} \cdot \mathbf{m})\left(2+\frac{1}{\alpha}\right)\left(1-(\mathbf{n} \cdot \mathbf{m})^{2}\right)^{\frac{1}{2 \alpha}}}{2 \pi}$$
+
+尽管该NDF的史密斯遮挡阴影函数没有闭式解，但是Imageworks提出了一个近似的数值解。使用Imageworks光泽项进行渲染的例子如下：
+![](f9.43.png)
+
+目前所讨论的布料模型只针对摸一个具体的布料模型。下一节讨论的模型将以一种通用的方式对布料建模
+
+### 9.10.3 微圆柱布料模型
+
+微圆柱模型与【s14.7.2】中的头发建模很类似。其基本思想是表面被一维的线所覆盖。详见原文。
+
+## 9.11 波光学BRDF模型
+
+我们之前套路的模型基于几何光学，它将光视为线而不是波。几何光学假设表面的不规则性小于一个波长或者大于100个波长。
+
+现实世界的表面并不总是满足上述要求。其不规则性可能在1到100波长之间。我们把这种尺度的不规则性叫做纳米几何（*nanogeometry*）。纳米几何对反射的影响不能使用几何光学来模拟。这种影响依赖于光的本质，需要使用波光学（*wave optics*），也叫物理光学（*physical optics*）。
+
+表面层，或者膜，如果其厚度接近一个波长，那么其产生的光学现象也跟光的波本质有关。
+
+本节讨论一些波光学现象，如衍射，薄膜干涉，以及它们在真实渲染中的重要性。
+
+### 9.11.1 衍射
+
+纳米几何会发生衍射（*diffraction*）。为了解释，需要用到惠更斯菲涅尔原理（*Huygens-Fresnel principle*）。原理见原文。相关图示如下：
+![](f9.44.png)
+
+以及：
+![](f9.45.png)
+
+### 9.11.2 薄膜干涉模型
+
+当光线在一个很薄的绝缘层的上下界面不断反射时会发生薄膜干涉（*Thin-film interference*）。原理见原文。相关图示如下：
+![](f9.46.png)
+
+以及：
+![](f9.47.png)
+
+## 9.12 分层材质
+
+在现实生活中，材质通常会一层一层地叠加在一起。例如表面会被灰尘，水，雪所覆盖。一种最简单但是对视觉效果非常重要的材质分层的例子就是透明图层（*clear coat*），即一种材质上还有一层平滑透明材质。例如粗糙木头上的油漆。迪士尼主着色模型包含了一个透明图层项，Unreal，PxrSurface，Dreamworks Animation和Imageworks都有类似的实现。
+
+详情见原文。图示如下：
+![](f9.48.png)
+
+## 9.13 混合和过滤材质
+
+材质混合是一个将多个材质的属性（也就是BRDF的参数）结合的过程。例如，为了模拟有锈斑的金属片，我们可以绘制一个掩码纹理来控制锈斑的位置，并使用它在金属和锈斑材质属性（高光颜色$F_{0}$，漫反射颜色$\rho_{\mathrm{ss}}$和粗糙度$\alpha$）之间进行混合。每个被混合的材质可以随空间变化，参数存在纹理中。混合可以是一种创建新材质的预处理过程，叫做烘焙，或者运行时由着色器动态计算。尽管表面法向量并不是BRDF的参数，但是其空间变化对外传至关重要，因此材质混合通常也包括法向量贴图混合。
+
+材质混合对许多实时渲染应用至关重要。许多游戏和工具都使用了材质混合。
+
+在运行时进行材质混合可以再节省内存的前提下提供多种效果。例如：
+* 显示建筑，交通工具和生物上面的动态损伤
+* 用户定制装备和服装
+* 提升人物和环境的视觉多样性
+
+先计算着色模型然后混合结果是严格正确的，但是先混合BRDF参数然后计算着色模型更快。后者要求材质属性参数跟着色模型的输出有线性或者近似线性的关系，如漫反射参数和高光颜色参数。不过，大多数情况下，即使参数与着色模型的输出高度非线性，造成的误差也很小。
+
+混合法向量贴图需要做额外的处理。
+
+材质过滤与材质混合是相关联的。材质属性通常存在纹理中，会经过诸如GPU双线性过滤和mipmap之类的过滤。这要求被过滤的量（着色方程的输入）与最终的颜色（着色方程的输出）线性相关。有时候这种要求是不满足的。这回造成失真，例如对法向量贴图或者粗糙度贴图做mipmap。这种失真显示为高光失真（闪烁的高光），或者表面的亮度随着距离摄像机的距离的变化而发生跳变。其中高光失真最为明显，用于缓解这种问题的技术叫做高光抗失真（*specular antialiasing*）技术。下一节讨论这些技术。
+
+### 9.13.1 过滤法向量和法向量分布
+
+绝大部分材质过滤失真和相关解决办法都跟法向量和NDF的过滤相关，我们将着重讨论它。
+
+NDF是子像素表面结构的统计分布。当摄像机和表面之间的距离增加时，之前覆盖多个像素的表面结构会减小到子像素尺寸，从凹凸映射的领域进入NDF的领域。这一转换与mipmap息息相关。
+
+考虑一个圆柱体是如何被渲染的，如下图。左图中，圆柱体使用原始的法向量贴图进行渲染。中间，使用了一个分辨率很低的法向量贴图，其中的法向量经过了平均和标准化操作。右图，渲染使用的分辨率跟中图一样低，但是使用了合适的NDF。宏观（*Macroscale*）几何使用三角形表达，中观（*mesoscale*）几何使用纹理表达，微观（*microscale*）几何使用BRDF表达。
+![](f9.49.png)
+
+在图中给定的尺度下，合适的做法是使用平滑网格（宏观）来表达圆柱体，使用法向量贴图（中观）来表达表面的凹凸。使用粗糙度$\alpha_{b}$固定的Beckmann NDF来表达微观发向量分布。这种结合的表达方式在这一尺度表现很好，但如果观察尺度发生变化呢？
+
+观察下图。下图上图是表面的一个小部分，被四个法向量贴图的图素所覆盖。假设现在的尺度是每个法向量图素平均被一个像素覆盖。对于每一个图素，法向量（分布的平均）用红色箭头表示，被黑色的Beckmann NDF包围。法向量和NDF隐式指定了一个表面结构。中间巨大的突起来自于法向量贴图，小的锯齿是表面微观结构。
+![](f9.50.png)
+
+假设现在摄像机远离该物体，一个像素覆盖四个图素。在这一分辨率下的最佳表示是被每个像素覆盖的更大的表面上的所有法向量的分布。这一分布可以通过计算四个图素位置的NDF的平均来获得。上图左图显示了该理想法向量分布。这一结果在低分辨率下也能够正确表达表面的外观。
+
+上图中图显示了分别对法向量平均（每个分布的均值）和粗糙度平均（与每个分布的宽度有关）的结果。结果的平均法向量是正确的（红色），但是分布过于狭窄。这会使得表面显得过于平滑。如果NDF过于狭窄，会导致失真，例如闪烁高光。
+
+我们无法使用Beckmann NDF来直接表达完美的法向量分布。一种近似方法如上图右图所示。
+
+为了获得更好的结果，mipmap之类的操作应该应用在发向量分布上，而不是法向量或者粗糙度值。这需要我们以另一种稍稍不同的方式来思考NDF和法向量之间的关系。通常NDF定义在一个局部切线空间，该空间由法向量贴图中的每像素的法向量定义。当在不同的法向量之间过滤NDF时，应该将法向量贴图和粗糙度贴图的组合定义为一种切线空间下的扭曲的NDF。
+
+用于解决NDF过滤问题的相关技术见原文。
+
+## 拓展阅读
+
+略
